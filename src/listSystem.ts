@@ -7,7 +7,7 @@ import { initialTopMostItemIndexSystem } from './initialTopMostItemIndexSystem'
 import { listStateSystem } from './listStateSystem'
 import { propsReadySystem } from './propsReadySystem'
 import { scrollSeekSystem } from './scrollSeekSystem'
-import { scrollToIndexSystem } from './scrollToIndexSystem'
+import { IndexLocation, scrollToIndexSystem } from './scrollToIndexSystem'
 import { sizeRangeSystem } from './sizeRangeSystem'
 import { sizeSystem } from './sizeSystem'
 import { topItemCountSystem } from './topItemCountSystem'
@@ -18,6 +18,7 @@ import { alignToBottomSystem } from './alignToBottomSystem'
 import { windowScrollerSystem } from './windowScrollerSystem'
 import { loggerSystem } from './loggerSystem'
 import { scrollIntoViewSystem } from './scrollIntoViewSystem'
+import { stateFlagsSystem } from './stateFlagsSystem'
 
 // workaround the growing list of systems below
 // fix this with 4.1 recursive conditional types
@@ -139,3 +140,28 @@ export const listSystem = u.system(
     loggerSystem
   )
 )
+
+export const listSystemForUser = u.system(([listSystem, { scrollUpdateWasRequested, innerScrollUpdateWasRequested }]) => {
+  u.subscribe(innerScrollUpdateWasRequested, (v) => {
+    console.log(`🚀 ~ file: listSystem.ts:148 ~ u.subscribe ~ innerScrollUpdateWasRequested`, v)
+  })
+  const scrollToIndex = u.stream<IndexLocation>()
+  u.connect(
+    u.pipe(
+      scrollToIndex,
+      u.map((v): IndexLocation => {
+        u.publish(scrollUpdateWasRequested, true)
+        return v
+      })
+    ),
+    listSystem.scrollToIndex
+  )
+  u.subscribe(listSystem.scrollToIndex, () => {
+    u.publish(scrollUpdateWasRequested, false)
+  })
+  // `scrollBy` is implements by DOM method, here we cannot intercept these method.
+  const scrollInterceptor = {
+    scrollToIndex,
+  } as Pick<typeof listSystem, 'scrollToIndex' | 'scrollBy'>
+  return { ...scrollInterceptor }
+}, u.tup(listSystem, stateFlagsSystem))

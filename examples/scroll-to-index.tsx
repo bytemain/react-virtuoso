@@ -24,6 +24,7 @@ export default function App() {
       <Virtuoso
         ref={ref}
         totalCount={100}
+        rangeChanged={(v) => console.log(v)}
         itemContent={(index) => <div style={{ height: index % 2 ? 30 : 20, background: 'white' }}>Item {index}</div>}
         style={{ height: 300, display: visible ? 'block' : 'none' }}
       />

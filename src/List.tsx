@@ -7,12 +7,13 @@ import useChangedListContentsSizes from './hooks/useChangedChildSizes'
 import useScrollTop from './hooks/useScrollTop'
 import useSize from './hooks/useSize'
 import { Components, ComputeItemKey, GroupContent, GroupItemContent, ItemContent, ListRootProps } from './interfaces'
-import { listSystem } from './listSystem'
+import { listSystem, listSystemForUser } from './listSystem'
 import { positionStickyCssValue } from './utils/positionStickyCssValue'
 import useWindowViewportRectRef from './hooks/useWindowViewportRect'
 import { correctItemSize } from './utils/correctItemSize'
 import { VirtuosoMockContext } from './utils/context'
 import { ScrollerProps } from '.'
+// import { IndexLocation } from './scrollToIndexSystem'
 
 export function identity<T>(value: T) {
   return value
@@ -145,8 +146,32 @@ const combinedSystem = u.system(([listSystem, propsSystem]) => {
   deprecateComponentProp(deprecatedProps.emptyComponent, 'EmptyPlaceholder', 'emptyComponent')
   deprecateComponentProp(deprecatedProps.GroupContainer, 'Group', 'GroupContainer')
 
-  return { ...listSystem, ...propsSystem, ...deprecatedProps }
-}, u.tup(listSystem, listComponentPropsSystem))
+  // const scrollToIndex = u.stream<IndexLocation>()
+  // u.connect(
+  //   u.pipe(
+  //     scrollToIndex,
+  //     u.map((v): IndexLocation => {
+  //       if (typeof v === 'number') {
+  //         return {
+  //           index: v,
+  //           scrollUpdateWasRequested: true,
+  //         }
+  //       }
+  //       return {
+  //         ...v,
+  //         scrollUpdateWasRequested: true,
+  //       }
+  //     })
+  //   ),
+  //   listSystem.scrollToIndex
+  // )
+  // // `scrollBy` is implements by DOM method, here we cannot intercept these method.
+  // const scrollInterceptor = {
+  //   scrollToIndex,
+  // } as Pick<typeof listSystem, 'scrollToIndex'>
+
+  return { ...listSystem, ...propsSystem, ...deprecatedProps, ...listSystemForUser }
+}, u.tup(listSystem, listComponentPropsSystem, listSystemForUser))
 
 const DefaultScrollSeekPlaceholder = ({ height }: { height: number }) => <div style={{ height }}></div>
 

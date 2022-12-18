@@ -5,12 +5,13 @@ import { domIOSystem } from './domIOSystem'
 import { offsetOf, originalIndexFromLocation, sizeSystem } from './sizeSystem'
 import { IndexLocationWithAlign } from './interfaces'
 import { loggerSystem, LogLevel } from './loggerSystem'
+import { stateFlagsSystem } from './stateFlagsSystem'
 
 export type IndexLocation = number | IndexLocationWithAlign
 
 const SUPPORTS_SCROLL_TO_OPTIONS = typeof document !== 'undefined' && 'scrollBehavior' in document.documentElement.style
 
-export function normalizeIndexLocation(location: IndexLocation) {
+export function normalizeIndexLocation(location: IndexLocation, scrollUpdateWasRequested?: boolean) {
   const result: IndexLocationWithAlign = typeof location === 'number' ? { index: location } : location
 
   if (!result.align) {
@@ -22,7 +23,9 @@ export function normalizeIndexLocation(location: IndexLocation) {
   if (!result.offset) {
     result.offset = 0
   }
-
+  if (typeof scrollUpdateWasRequested !== 'undefined' && typeof result.scrollUpdateWasRequested === 'undefined') {
+    result.scrollUpdateWasRequested = scrollUpdateWasRequested
+  }
   return result
 }
 
@@ -40,6 +43,7 @@ export const scrollToIndexSystem = u.system(
       fixedFooterHeight,
     },
     { log },
+    { scrollUpdateWasRequested, innerScrollUpdateWasRequested },
   ]) => {
     const scrollToIndex = u.stream<IndexLocation>()
     const topListHeight = u.statefulStream(0)
@@ -64,6 +68,7 @@ export const scrollToIndexSystem = u.system(
         cleartTimeoutRef = null
       }
       u.publish(scrollingInProgress, false)
+      u.publish(innerScrollUpdateWasRequested, false)
     }
 
     u.connect(
@@ -78,7 +83,20 @@ export const scrollToIndexSystem = u.system(
             fixedHeaderHeight,
             fixedFooterHeight,
           ]) => {
-            const normalLocation = normalizeIndexLocation(location)
+            const normalLocation = normalizeIndexLocation(location, u.getValue(scrollUpdateWasRequested))
+            console.log(`🚀 ~ file: scrollToIndexSystem.ts:87 ~ u.getValue(scrollUpdateWasRequested)`, u.getValue(scrollUpdateWasRequested))
+            console.log(
+              `🚀 ~ file: scrollToIndexSystem.ts:87 ~ u.getValue(innerScrollUpdateWasRequested)`,
+              u.getValue(innerScrollUpdateWasRequested)
+            )
+            console.log(`🚀 ~ file: scrollToIndexSystem.ts:87 ~ normalLocation`, normalLocation)
+            if (normalLocation.scrollUpdateWasRequested) {
+              u.publish(innerScrollUpdateWasRequested, true)
+              console.log(
+                `🚀 ~ file: scrollToIndexSystem.ts:87 ~ u.getValue(innerScrollUpdateWasRequested)`,
+                u.getValue(innerScrollUpdateWasRequested)
+              )
+            }
             const { align, behavior, offset } = normalLocation
             const lastIndex = totalCount - 1
 
@@ -104,7 +122,7 @@ export const scrollToIndexSystem = u.system(
               cleanup()
               if (listChanged) {
                 log('retrying to scroll to', { location }, LogLevel.DEBUG)
-                u.publish(scrollToIndex, location)
+                u.publish(scrollToIndex, normalLocation)
               } else {
                 log('list did not change, scroll successful', {}, LogLevel.DEBUG)
               }
@@ -145,7 +163,7 @@ export const scrollToIndexSystem = u.system(
       topListHeight,
     }
   },
-  u.tup(sizeSystem, domIOSystem, loggerSystem),
+  u.tup(sizeSystem, domIOSystem, loggerSystem, stateFlagsSystem),
   { singleton: true }
 )
 

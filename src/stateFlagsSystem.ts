@@ -62,6 +62,8 @@ export const stateFlagsSystem = u.system(([{ scrollContainerState, scrollTop, vi
   const atTopStateChange = u.stream<boolean>()
   const atBottomThreshold = u.statefulStream(4)
   const atTopThreshold = u.statefulStream(DEFAULT_AT_TOP_THRESHOLD)
+  const scrollUpdateWasRequested = u.statefulStream(false)
+  const innerScrollUpdateWasRequested = u.statefulStream(false)
 
   // skip 1 to avoid an initial on/off flick
   const isScrolling = u.statefulStreamFromEmitter(
@@ -256,5 +258,7 @@ export const stateFlagsSystem = u.system(([{ scrollContainerState, scrollTop, vi
     atTopThreshold,
     scrollVelocity,
     lastJumpDueToItemResize,
+    scrollUpdateWasRequested,
+    innerScrollUpdateWasRequested,
   }
 }, u.tup(domIOSystem))

@@ -249,14 +249,18 @@ export interface LocationOptions {
   offset?: number
 }
 
-export interface FlatIndexLocationWithAlign extends LocationOptions {
+export interface InnerLocationOptions extends LocationOptions {
+  scrollUpdateWasRequested?: boolean
+}
+
+export interface FlatIndexLocationWithAlign extends InnerLocationOptions {
   /**
    * The index of the item to scroll to.
    */
   index: number | 'LAST'
 }
 
-export interface GroupIndexLocationWithAlign extends LocationOptions {
+export interface GroupIndexLocationWithAlign extends InnerLocationOptions {
   /**
    * The group index of the item to scroll to.
    */

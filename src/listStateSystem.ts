@@ -27,6 +27,7 @@ export interface ListState {
   bottom: number
   totalCount: number
   firstItemIndex: number
+  innerScrollUpdateWasRequested: boolean
 }
 
 function probeItemSet(index: number, sizes: SizeState, data: Data) {
@@ -52,6 +53,7 @@ const EMPTY_LIST_STATE: ListState = {
   topListHeight: 0,
   totalCount: 0,
   firstItemIndex: 0,
+  innerScrollUpdateWasRequested: false,
 }
 
 function transposeItems(items: Item<any>[], sizes: SizeState, firstItemIndex: number): ListItems {
@@ -109,7 +111,8 @@ export function buildListState(
   totalCount: number,
   gap: number,
   sizes: SizeState,
-  firstItemIndex: number
+  firstItemIndex: number,
+  innerScrollUpdateWasRequested: boolean
 ): ListState {
   const { lastSize, lastOffset, lastIndex } = sizes
   let offsetTop = 0
@@ -136,6 +139,7 @@ export function buildListState(
     bottom,
     totalCount,
     firstItemIndex,
+    innerScrollUpdateWasRequested,
   }
 }
 
@@ -168,7 +172,8 @@ export const listStateSystem = u.system(
           u.duc(topItemsIndexes),
           u.duc(firstItemIndex),
           u.duc(gap),
-          data
+          data,
+          stateFlags.innerScrollUpdateWasRequested
         ),
         u.filter(([mount, recalcInProgress]) => {
           return mount && !recalcInProgress
@@ -186,6 +191,7 @@ export const listStateSystem = u.system(
             firstItemIndex,
             gap,
             data,
+            innerScrollUpdateWasRequested,
           ]) => {
             const sizesValue = sizes
             const { sizeTree, offsetTree } = sizesValue
@@ -201,7 +207,8 @@ export const listStateSystem = u.system(
                 totalCount,
                 gap,
                 sizesValue,
-                firstItemIndex
+                firstItemIndex,
+                innerScrollUpdateWasRequested
               )
             }
 
@@ -228,7 +235,7 @@ export const listStateSystem = u.system(
             // This is a condition to be evaluated past the probe check, do not merge
             // with the totalCount check above
             if (!scrolledToInitialItem) {
-              return buildListState([], topItems, totalCount, gap, sizesValue, firstItemIndex)
+              return buildListState([], topItems, totalCount, gap, sizesValue, firstItemIndex, innerScrollUpdateWasRequested)
             }
 
             const minStartIndex = topItemsIndexes.length > 0 ? topItemsIndexes[topItemsIndexes.length - 1] + 1 : 0
@@ -271,7 +278,7 @@ export const listStateSystem = u.system(
               }
             })
 
-            return buildListState(items, topItems, totalCount, gap, sizesValue, firstItemIndex)
+            return buildListState(items, topItems, totalCount, gap, sizesValue, firstItemIndex, innerScrollUpdateWasRequested)
           }
         ),
         //@ts-expect-error filter needs to be fixed
@@ -343,7 +350,7 @@ export const listStateSystem = u.system(
       u.pipe(
         listState,
         u.filter(({ items }) => items.length > 0),
-        u.map(({ items }) => {
+        u.map(({ items, innerScrollUpdateWasRequested }) => {
           let startIndex = 0
           let endIndex = items.length - 1
 
@@ -358,6 +365,7 @@ export const listStateSystem = u.system(
           return {
             startIndex: items[startIndex].index,
             endIndex: items[endIndex].index,
+            scrollUpdateWasRequested: innerScrollUpdateWasRequested,
           } as ListRange
         }),
         u.distinctUntilChanged(rangeComparator)
